@@ -52,6 +52,7 @@ export default function FormulaInput() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchTerm(value);
+    // Always show suggestions when there's input
     setShowSuggestions(value.length > 0);
   };
   
@@ -68,6 +69,9 @@ export default function FormulaInput() {
     if (isOperator(e.key)) {
       e.preventDefault();
       addOperator(e.key);
+      // Reset search term and hide suggestions after adding an operator
+      setSearchTerm('');
+      setShowSuggestions(false);
       return;
     }
     
@@ -92,6 +96,11 @@ export default function FormulaInput() {
       e.preventDefault();
       setShowSuggestions(false);
       return;
+    }
+
+    // Show suggestions for any other key press if there's a search term
+    if (searchTerm.length > 0 || e.key.length === 1) {
+      setShowSuggestions(true);
     }
   };
   
@@ -122,10 +131,32 @@ export default function FormulaInput() {
     }
   };
   
-  // Handle container click to focus the input
+  // Force show suggestions
+  const handleFocusInput = () => {
+    setIsFocused(true);
+    // Always check for suggestions when focused
+    if (searchTerm.length > 0) {
+      setShowSuggestions(true);
+    }
+  };
+  
+  // Handle blur with longer delay to ensure clicks on suggestions register
+  const handleBlurInput = () => {
+    // Use a longer timeout to ensure click events on suggestions can complete
+    setTimeout(() => {
+      setIsFocused(false);
+      // Don't hide suggestions immediately to allow clicks to register
+    }, 300);
+  };
+  
+  // Explicitly handle clicks on the container to ensure focus
   const handleContainerClick = () => {
     if (inputRef.current) {
       inputRef.current.focus();
+      // Show suggestions if there's a search term
+      if (searchTerm.length > 0) {
+        setShowSuggestions(true);
+      }
     }
   };
   
@@ -163,9 +194,9 @@ export default function FormulaInput() {
       <div
         ref={containerRef}
         className={`
-          relative flex flex-wrap items-center p-2 border rounded-md
-          ${isFocused ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-300'}
-          min-h-12 bg-white
+          relative flex flex-wrap items-center p-3 border rounded-md
+          ${isFocused ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-300 hover:border-gray-400'}
+          min-h-14 bg-white shadow-sm transition-all duration-200
         `}
         onClick={handleContainerClick}
       >
@@ -176,12 +207,12 @@ export default function FormulaInput() {
         <input
           ref={inputRef}
           type="text"
-          className="flex-grow outline-none px-1 py-0.5 text-sm"
+          className="flex-grow outline-none px-2 py-1.5 text-base font-medium text-gray-800 placeholder-gray-500"
           value={searchTerm}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onFocus={handleFocusInput}
+          onBlur={handleBlurInput}
           placeholder={formula.length === 0 ? "Start typing to search for variables..." : ""}
         />
         
@@ -196,9 +227,9 @@ export default function FormulaInput() {
       
       {/* Result display */}
       {result && (
-        <div className="mt-4 p-3 bg-gray-100 rounded-md">
-          <div className="text-sm text-gray-500">Result:</div>
-          <div className="text-lg font-medium">{result}</div>
+        <div className="mt-4 p-4 bg-white border border-gray-300 rounded-md shadow-sm">
+          <div className="text-sm font-medium text-gray-600 mb-1">Result:</div>
+          <div className="text-xl font-semibold text-blue-700">{result}</div>
         </div>
       )}
       
